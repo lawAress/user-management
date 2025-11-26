@@ -1,25 +1,28 @@
-FROM node:18-alpine AS builder
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copiar package.json e instalar dependencias completas para build
-COPY package*.json ./
-RUN npm ci
+# Instalar dependencias del sistema (por si acaso)
+RUN apk add --no-cache python3 make g++
 
-# Copiar el código fuente y compilar
+# Copiar archivos de dependencias
+COPY package*.json ./
+
+# Instalar todas las dependencias (incluyendo dev para compilar)
+RUN npm install
+
+# Copiar código fuente
 COPY . .
+
+# Compilar
 RUN npm run build
 
-FROM node:18-alpine AS runner
-WORKDIR /app
+# Remover node_modules y reinstalar solo producción
+RUN rm -rf node_modules && npm install --only=production
 
-# Solo dependencias de producción
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copiar los artefactos compilados
-COPY --from=builder /app/dist ./dist
-
+# Configurar ambiente
 ENV NODE_ENV=production
 EXPOSE 3000
+
+# Ejecutar la app compilada
 CMD ["node", "dist/main"]
