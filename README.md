@@ -23,76 +23,186 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+API de gestión de usuarios y autenticación construida con NestJS, TypeORM y SQLite.
 
-## Project setup
+**Funcionalidades principales:**
+-  CRUD de usuarios (crear, listar, obtener, actualizar, eliminar)
+-  Autenticación con email/contraseña
+-  Generación y validación de JWT tokens
+-  Contraseñas hasheadas con bcrypt
+-  Validaciones automáticas (class-validator)
+
+## Project Setup
 
 ```bash
-$ npm install
+# Instalar dependencias
+npm install
+
+# (Opcional) Crear .env con configuración
+cp .env.example .env
 ```
 
-## Compile and run the project
+## Running the Project
 
 ```bash
-# development
-$ npm run start
+# Modo desarrollo (con auto-recarga)
+npm run start:dev
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+# Modo producción
+npm run build
+npm run start:prod
 ```
 
-## Run tests
+## Running Tests
 
 ```bash
 # unit tests
-$ npm run test
+npm run test
 
 # e2e tests
-$ npm run test:e2e
+npm run test:e2e
 
 # test coverage
-$ npm run test:cov
+npm run test:cov
 ```
 
-## Deployment
+## Endpoints
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Usuarios
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/users` | Crear nuevo usuario |
+| GET | `/users` | Listar todos los usuarios |
+| GET | `/users/:id` | Obtener usuario por ID |
+| PATCH | `/users/:id` | Actualizar usuario |
+| DELETE | `/users/:id` | Eliminar usuario |
+
+#### Ejemplo: Crear usuario
+```bash
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Juan Pérez",
+    "email": "juan@example.com",
+    "password": "password123"
+  }'
+```
+
+### Autenticación
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/auth/login` | Login y obtener JWT token |
+
+#### Ejemplo: Login
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "juan@example.com",
+    "password": "password123"
+  }'
+```
+
+**Respuesta:**
+```json
+{
+  "user": {
+    "id": 1,
+    "name": "Juan Pérez",
+    "email": "juan@example.com",
+    "role": null
+  },
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+## Estructura del Proyecto
+
+```
+src/
+├── auth/                 # Autenticación (Passport, JWT)
+├── users/                # Gestión de usuarios (CRUD)
+├── config/               # Configuración (Base de datos)
+├── app.module.ts         # Módulo principal
+└── main.ts               # Punto de entrada
+```
+
+## Configuración
+
+- **Base de datos**: SQLite (`database.sqlite`)
+- **Puerto**: 3000 (configurable via `.env` o `process.env.PORT`)
+- **JWT Secret**: `src/auth/constants.ts` (usar `.env` en producción)
+- **Node Version**: >= 18.16.1
+
+## Despliegue en Koyeb
+
+**Lee la guía completa en [`DEPLOYMENT_KOYEB.md`](./DEPLOYMENT_KOYEB.md)** para instrucciones detalladas.
+
+### Resumen rápido:
+
+1. Haz push a GitHub: `git push origin main`
+2. En Koyeb: **Create Service > GitHub > Docker** (detecta `Dockerfile` automáticamente)
+3. Configura variables de entorno (ver `DEPLOYMENT_KOYEB.md`):
+   - `PORT=3000`
+   - `NODE_ENV=production`
+   - `JWT_SECRET` = tu secreto (usa `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` para generar)
+   - `DATABASE_URL` = conexión a Postgres (usa Neon, Railway, Supabase o BD administrada de Koyeb)
+4. Despliega y revisa logs
+
+### Probar localmente con Postgres (docker-compose)
+
+Antes de desplegar en Koyeb, prueba con Postgres localmente:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker-compose up --build
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Accede a `http://localhost:3000`. El archivo `docker-compose.yml` incluye:
+- Base de datos PostgreSQL
+- Aplicación NestJS con hot-reload en modo desarrollo
 
-## Resources
+Detener:
+```bash
+docker-compose down
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+Limpiar volúmenes (reiniciar BD):
+```bash
+docker-compose down -v
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### CI/CD automático (GitHub Actions)
 
-## Support
+Este proyecto incluye workflow automático (`.github/workflows/deploy.yml`) que:
+- Ejecuta tests en cada push a `main`
+- Compila y publica imagen Docker en Docker Hub (requiere configurar secrets)
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Para activarlo:
+1. Genera token en Docker Hub (Access Tokens)
+2. En GitHub repo: **Settings > Secrets > New secret**
+   - `DOCKER_USERNAME` = tu usuario
+   - `DOCKER_PASSWORD` = tu token
+3. Haz push a `main` → GitHub Actions construirá y publicará automáticamente
 
-## Stay in touch
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Seguridad (TODO)
+
+ Mejoras pendientes para producción:
+- [ ] Mover JWT secret a `.env`
+- [ ] Deshabilitar `synchronize: true`
+- [ ] Rate limiting
+- [ ] HTTPS
+- [ ] Refresh tokens
+- [ ] Roles y permisos
+
+## Recursos
+
+- [NestJS Documentation](https://docs.nestjs.com)
+- [TypeORM Documentation](https://typeorm.io)
+- [Passport.js](https://www.passportjs.org/)
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+UNLICENSED
