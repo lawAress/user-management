@@ -25,7 +25,8 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Instalar solo dependencias de runtime necesarias
-RUN apk add --no-cache python3 make g++ build-base
+# Mantener build-essential para SQLite si se usa localmente
+RUN apk add --no-cache dumb-init
 
 # Copiar package.json
 COPY package*.json ./
